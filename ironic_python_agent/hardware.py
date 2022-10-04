@@ -985,27 +985,6 @@ class HardwareManager(object, metaclass=abc.ABCMeta):
         hardware_info['boot'] = self.get_boot_info()
         hardware_info['hostname'] = netutils.get_hostname()
 
-        try:
-            hardware_info['bmc_address'] = self.get_bmc_address()
-        except (errors.IncompatibleHardwareMethodError, subprocess.TimeoutExpired):
-            # if the hardware manager does not support obtaining the BMC address,
-            # we simply don't expose it.
-            pass
-
-        try:
-            hardware_info['bmc_v6address'] = self.get_bmc_v6address()
-        except (errors.IncompatibleHardwareMethodError, subprocess.TimeoutExpired):
-            # if the hardware manager does not support obtaining the BMC v6 address,
-            # we simply don't expose it.
-            pass
-
-        try:
-            hardware_info['bmc_mac'] = self.get_bmc_mac()
-        except (errors.IncompatibleHardwareMethodError, subprocess.TimeoutExpired):
-            # if the hardware manager does not support obtaining the BMC MAC,
-            # we simply don't expose it.
-            pass
-
         LOG.info('Inventory collected in %.2f second(s)', time.time() - start)
         return hardware_info
 

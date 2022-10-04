@@ -18,7 +18,6 @@ import collections
 import functools
 import ipaddress
 import json
-from multiprocessing.pool import ThreadPool
 import os
 import re
 import shlex
@@ -26,27 +25,22 @@ import shutil
 import stat
 import string
 import time
+from multiprocessing.pool import ThreadPool
 
-from ironic_lib import disk_utils
-from ironic_lib import utils as il_utils
-from oslo_concurrency import processutils
-from oslo_config import cfg
-from oslo_log import log
 import pint
 import psutil
 import pyudev
 import stevedore
 import yaml
+from ironic_lib import disk_utils
+from ironic_lib import utils as il_utils
+from oslo_concurrency import processutils
+from oslo_config import cfg
+from oslo_log import log
 
-from ironic_python_agent import burnin
-from ironic_python_agent import encoding
-from ironic_python_agent import errors
+from ironic_python_agent import (burnin, encoding, errors, inject_files,
+                                 netutils, raid_utils, tls_utils, utils)
 from ironic_python_agent.extensions import base as ext_base
-from ironic_python_agent import inject_files
-from ironic_python_agent import netutils
-from ironic_python_agent import raid_utils
-from ironic_python_agent import tls_utils
-from ironic_python_agent import utils
 
 _global_managers = None
 LOG = log.getLogger()
@@ -987,15 +981,27 @@ class HardwareManager(object, metaclass=abc.ABCMeta):
         hardware_info['cpu'] = self.get_cpus()
         hardware_info['disks'] = self.list_block_devices()
         hardware_info['memory'] = self.get_memory()
-        hardware_info['bmc_address'] = self.get_bmc_address()
-        hardware_info['bmc_v6address'] = self.get_bmc_v6address()
         hardware_info['system_vendor'] = self.get_system_vendor_info()
         hardware_info['boot'] = self.get_boot_info()
         hardware_info['hostname'] = netutils.get_hostname()
 
         try:
+            hardware_info['bmc_address'] = self.get_bmc_address()
+        except (errors.IncompatibleHardwareMethodError, subprocess.TimeoutExpired):
+            # if the hardware manager does not support obtaining the BMC address,
+            # we simply don't expose it.
+            pass
+
+        try:
+            hardware_info['bmc_v6address'] = self.get_bmc_v6address()
+        except (errors.IncompatibleHardwareMethodError, subprocess.TimeoutExpired):
+            # if the hardware manager does not support obtaining the BMC v6 address,
+            # we simply don't expose it.
+            pass
+
+        try:
             hardware_info['bmc_mac'] = self.get_bmc_mac()
-        except errors.IncompatibleHardwareMethodError:
+        except (errors.IncompatibleHardwareMethodError, subprocess.TimeoutExpired):
             # if the hardware manager does not support obtaining the BMC MAC,
             # we simply don't expose it.
             pass

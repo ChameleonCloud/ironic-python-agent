@@ -65,6 +65,7 @@ API_LOOKUP_INTERVAL = None
 SUPPORTED_SOFTWARE_RAID_LEVELS = frozenset(['0', '1', '1+0', '5', '6'])
 NVME_CLI_FORMAT_SUPPORTED_FLAG = 0b10
 NVME_CLI_CRYPTO_FORMAT_SUPPORTED_FLAG = 0b100
+IPMITOOL_TIMEOUT=5 # default 5 second timeout for ipmitool to return
 
 RAID_APPLY_CONFIGURATION_ARGSINFO = {
     "raid_config": {
@@ -1942,7 +1943,7 @@ class GenericHardwareManager(HardwareManager):
             for channel in range(1, 12):
                 out, e = utils.execute(
                     "ipmitool lan print {} | awk '/IP Address[ \\t]*:/"
-                    " {{print $4}}'".format(channel), shell=True)
+                    " {{print $4}}'".format(channel), shell=True, timeout=IPMITOOL_TIMEOUT)
                 if e.startswith("Invalid channel"):
                     continue
                 out = out.strip()
@@ -1979,7 +1980,7 @@ class GenericHardwareManager(HardwareManager):
             for channel in range(1, 12):
                 out, e = utils.execute(
                     "ipmitool lan print {} | awk '/(IP|MAC) Address[ \\t]*:/"
-                    " {{print $4}}'".format(channel), shell=True)
+                    " {{print $4}}'".format(channel), shell=True, timeout=IPMITOOL_TIMEOUT)
                 if e.startswith("Invalid channel"):
                     continue
 
@@ -2025,7 +2026,7 @@ class GenericHardwareManager(HardwareManager):
             cmd = "ipmitool lan6 print {} {}_addr".format(
                 channel, 'dynamic' if dynamic else 'static')
             try:
-                out, exc = utils.execute(cmd, shell=True)
+                out, exc = utils.execute(cmd, shell=True, timeout=IPMITOOL_TIMEOUT)
             except processutils.ProcessExecutionError:
                 return
 
